@@ -3780,6 +3780,63 @@ button.demand-row:hover {
     transition: none !important;
   }
 }
+.approval-routing-card.quick-completion-selected {
+  border-color: #83b49d;
+  background:
+    linear-gradient(
+      145deg,
+      #edf8f1,
+      #fbfdfb);
+  box-shadow: inset 4px 0 0 #2a7758;
+}
+.approval-routing-card.quick-completion-selected > div:first-child h3 {
+  color: #17513d;
+}
+.approval-routing-card.quick-completion-selected > small {
+  display: block;
+  padding: 10px 12px;
+  border-radius: 8px;
+  background: #dcefe4;
+  color: #1d6148;
+  font-weight: 750;
+}
+.approval-routing-card.quick-timing-selected {
+  border-color: #9bc5b1;
+  background: #f4faf6;
+}
+.approval-automatic-fy {
+  display: grid;
+  grid-template-columns: 34px minmax(0, 1fr);
+  gap: 10px;
+  align-items: center;
+  margin-top: 12px;
+  padding: 11px 12px;
+  border: 1px solid #acd1be;
+  border-radius: 9px;
+  background: #e3f2e9;
+}
+.approval-automatic-fy > span {
+  display: grid;
+  width: 32px;
+  height: 32px;
+  place-items: center;
+  border-radius: 9px;
+  background: #2b7558;
+  color: #fff;
+  font-weight: 800;
+}
+.approval-automatic-fy p,
+.approval-automatic-fy small,
+.approval-automatic-fy strong {
+  display: block;
+  margin: 0;
+}
+.approval-automatic-fy small {
+  color: #587268;
+}
+.approval-automatic-fy strong {
+  color: #174f3b;
+}
 .stage-badge.submitted {
   background: #eee8f8;
   color: #6c4a92;
@@ -36577,14 +36634,15 @@ The primary beneficiaries are ${lowerBusinessClause(beneficiaries)}. Planning an
   function DemandJourney({ demand }) {
     const [showDecision, setShowDecision] = (0, import_react.useState)(false);
     const activeIndex = getDemandStageIndex(demand);
-    const fastTrackApproved = demand.decision === "Approved" && demand.deliveryStage === "Complete" && ["Self-service", "Centrally assisted"].includes(getDemandSize(demand));
+    const businessLedSelfService = demand.approvedNextSteps?.includes("Business-led self-service") ?? false;
+    const fastTrackApproved = demand.decision === "Approved" && demand.deliveryStage === "Complete" && (["Self-service", "Centrally assisted"].includes(getDemandSize(demand)) || businessLedSelfService);
     const status = demand.decision === "Rejected" ? {
       label: "Rejected by Digital Managers",
       detail: "This demand will not move into shaping. Open the Digital Manager decision below to see why and what would be required for reconsideration.",
       owner: demand.digitalManager ?? "Digital Managers"
     } : fastTrackApproved ? {
       label: "Approved to proceed",
-      detail: "Digital Manager approval completes this DemandFlow pathway. Shaping, scheduling and delivery are not required for this Self-service or Centrally Assisted demand.",
+      detail: businessLedSelfService ? "The Digital Manager acknowledged this as a business-led self-service demand. Approval completes the DemandFlow pathway; shaping, scheduling, resourcing and delivery are not required." : "Digital Manager approval completes this DemandFlow pathway. Shaping, scheduling and delivery are not required for this Self-service or Centrally Assisted demand.",
       owner: demand.requestor
     } : [
       {
@@ -38531,6 +38589,15 @@ The primary beneficiaries are ${lowerBusinessClause(beneficiaries)}. Planning an
         )
       );
     };
+    const toggleApprovalNextStep = (nextStep) => {
+      setApprovalNextSteps((current) => {
+        if (nextStep === "Business-led self-service") {
+          return current.includes(nextStep) ? current.filter((item) => item !== nextStep) : [nextStep];
+        }
+        const shapingSteps = current.filter((item) => item !== "Business-led self-service");
+        return shapingSteps.includes(nextStep) ? shapingSteps.filter((item) => item !== nextStep) : [...shapingSteps, nextStep];
+      });
+    };
     const progressTriageToImpact = () => {
       if (!triageChecks.every(Boolean)) return;
       setDemandUpdates((current) => ({
@@ -38628,8 +38695,9 @@ The primary beneficiaries are ${lowerBusinessClause(beneficiaries)}. Planning an
         return;
       }
       const approved = outcome === "Approved";
-      const approvedForValue = approvalFinancialYear === "Future" ? approvalFutureFy.trim() : approvalFinancialYear;
-      if (approved && !approvedForValue) {
+      const businessLedSelfService = approvalNextSteps.includes("Business-led self-service");
+      const approvedForValue = businessLedSelfService ? currentFinancialYear : approvalFinancialYear === "Future" ? approvalFutureFy.trim() : approvalFinancialYear;
+      if (approved && !businessLedSelfService && !approvedForValue) {
         notify("Select the financial year this demand is approved for.");
         return;
       }
@@ -38638,6 +38706,7 @@ The primary beneficiaries are ${lowerBusinessClause(beneficiaries)}. Planning an
         return;
       }
       const smallDemand = ["Self-service", "Centrally assisted"].includes(getDemandSize(selectedDemand));
+      const completesOnApproval = smallDemand || businessLedSelfService;
       const selectedShapingDisciplines = approvalNextSteps.flatMap((step2) => {
         if (step2.startsWith("Solution Architecture")) return ["Solution Architecture"];
         if (step2.startsWith("Business Analysis")) return ["Business Analysis"];
@@ -38657,13 +38726,13 @@ The primary beneficiaries are ${lowerBusinessClause(beneficiaries)}. Planning an
           decidedOn: "5 Aug 2026",
           approvedFor: approved ? approvedForValue : void 0,
           approvedNextSteps: approved ? approvalNextSteps : void 0,
-          stage: approved ? smallDemand ? "Complete" : "Shaping" : "Rejected",
-          tone: approved ? smallDemand ? "complete" : "shaping" : "rejected",
-          owner: approved ? smallDemand ? selectedDemand.requestor : "Shaping Team" : currentRole.profile[1],
+          stage: approved ? completesOnApproval ? "Complete" : "Shaping" : "Rejected",
+          tone: approved ? completesOnApproval ? "complete" : "shaping" : "rejected",
+          owner: approved ? completesOnApproval ? selectedDemand.requestor : "Shaping Team" : currentRole.profile[1],
           age: "Decision recorded just now",
-          deliveryStage: approved ? smallDemand ? "Complete" : "Shaping" : void 0,
-          shapingDisciplines: approved && !smallDemand ? selectedShapingDisciplines.length ? selectedShapingDisciplines : ["Business Analysis"] : void 0,
-          shapingLead: approved && !smallDemand ? "To be assigned" : void 0,
+          deliveryStage: approved ? completesOnApproval ? "Complete" : "Shaping" : void 0,
+          shapingDisciplines: approved && !completesOnApproval ? selectedShapingDisciplines.length ? selectedShapingDisciplines : ["Business Analysis"] : void 0,
+          shapingLead: approved && !completesOnApproval ? "To be assigned" : void 0,
           shapingSummary: void 0,
           shapingComplete: false,
           capacityStatus: void 0,
@@ -38673,12 +38742,12 @@ The primary beneficiaries are ${lowerBusinessClause(beneficiaries)}. Planning an
       }));
       setDecision(outcome);
       recordAudit(`Demand ${outcome.toLowerCase()}`, `${selectedDemand.id} was ${outcome.toLowerCase()}${approved ? ` for ${approvedForValue}` : ""}. Feedback: ${decisionNote.trim()}`, selectedDemand.id);
-      if (approved && smallDemand) {
+      if (approved && completesOnApproval) {
         setNotifications((current) => [{
           id: `NTF-BU-${Date.now()}`,
           role: "Business unit",
-          title: `${getDemandSize(selectedDemand)} demand approved to proceed`,
-          detail: `Approval email: ${selectedDemand.id} is complete in DemandFlow and approved for ${approvedForValue}. Digital Manager feedback: ${decisionNote.trim()}`,
+          title: `${businessLedSelfService ? "Business-led self-service" : getDemandSize(selectedDemand)} demand approved to proceed`,
+          detail: `Approval email: ${selectedDemand.id} is complete in DemandFlow and approved for ${approvedForValue}. Shaping, scheduling, resourcing and delivery are not required. Digital Manager feedback: ${decisionNote.trim()}`,
           demandId: selectedDemand.id,
           time: "Just now",
           tone: "update"
@@ -38694,7 +38763,7 @@ The primary beneficiaries are ${lowerBusinessClause(beneficiaries)}. Planning an
           tone: "review"
         }, ...current]);
       }
-      notify(approved ? smallDemand ? "Small demand approved and completed. An approval email with Digital Manager feedback was prepared for the demand owner." : "Demand approved and moved into Shaping with the nominated specialist teams." : "Demand rejected with feedback recorded.");
+      notify(approved ? completesOnApproval ? `${businessLedSelfService ? "Business-led self-service" : "Small"} demand approved and completed. An approval email with Digital Manager feedback was prepared for the demand owner.` : "Demand approved and moved into Shaping with the nominated specialist teams." : "Demand rejected with feedback recorded.");
     };
     const progressShapingToScheduling = () => {
       if (!shapingReady) {
@@ -40701,7 +40770,7 @@ The primary beneficiaries are ${lowerBusinessClause(beneficiaries)}. Planning an
                 "Demand ",
                 decision.toLowerCase()
               ] }),
-              /* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", { children: decision === "Approved" ? ["Self-service", "Centrally assisted"].includes(getDemandSize(selectedDemand)) ? "This small demand is approved to proceed and completed in DemandFlow. The demand owner was notified with your feedback." : "Your feedback, financial year and nominated teams are recorded. The demand now moves into Shaping." : "Your feedback is recorded and visible to the Business Unit. This demand will not progress to shaping." })
+              /* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", { children: decision === "Approved" ? ["Self-service", "Centrally assisted"].includes(getDemandSize(selectedDemand)) || approvalNextSteps.includes("Business-led self-service") ? "This business-led or small demand is approved to proceed and completed in DemandFlow. The demand owner was notified with your feedback. Shaping, scheduling, resourcing and delivery are not required." : "Your feedback, financial year and nominated teams are recorded. The demand now moves into Shaping." : "Your feedback is recorded and visible to the Business Unit. This demand will not progress to shaping." })
             ] })
           ] }),
           /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("section", { className: "review-workspace governance-workspace", children: [
@@ -40781,36 +40850,47 @@ The primary beneficiaries are ${lowerBusinessClause(beneficiaries)}. Planning an
                   /* @__PURE__ */ (0, import_jsx_runtime.jsx)("strong", { children: "None recorded" })
                 ] })
               ] }),
-              /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("section", { className: "approval-routing-card", children: [
+              /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("section", { className: `approval-routing-card ${approvalNextSteps.includes("Business-led self-service") ? "quick-timing-selected" : ""}`, children: [
                 /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [
                   /* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", { className: "eyebrow", children: "Mandatory approval timing" }),
                   /* @__PURE__ */ (0, import_jsx_runtime.jsx)("h3", { children: "Approved for which financial year?" }),
-                  /* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", { children: "Choose the expected delivery year. The options automatically follow the current financial year." })
+                  /* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", { children: approvalNextSteps.includes("Business-led self-service") ? `Business-led self-service is approved to proceed immediately and will be recorded against ${currentFinancialYear}.` : "Choose the expected delivery year. The options automatically follow the current financial year." })
                 ] }),
-                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { className: "approval-fy-options", children: [currentFinancialYear, nextFinancialYear, "Future"].map((financialYear) => /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("label", { className: approvalFinancialYear === financialYear ? "selected" : "", children: [
-                  /* @__PURE__ */ (0, import_jsx_runtime.jsx)("input", { type: "radio", name: "approval-financial-year", value: financialYear, checked: approvalFinancialYear === financialYear, onChange: (event) => setApprovalFinancialYear(event.target.value) }),
-                  /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: financialYear === "Future" ? "Future FY" : financialYear })
-                ] }, financialYear)) }),
-                approvalFinancialYear === "Future" && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("label", { className: "field", children: [
-                  /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("span", { children: [
-                    "Future financial year ",
-                    /* @__PURE__ */ (0, import_jsx_runtime.jsx)("b", { children: "*" })
-                  ] }),
-                  /* @__PURE__ */ (0, import_jsx_runtime.jsx)("input", { value: approvalFutureFy, onChange: (event) => setApprovalFutureFy(event.target.value.toUpperCase()), placeholder: "e.g. FY29" })
+                approvalNextSteps.includes("Business-led self-service") ? /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: "approval-automatic-fy", children: [
+                  /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: "\u2713" }),
+                  /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("p", { children: [
+                    /* @__PURE__ */ (0, import_jsx_runtime.jsx)("small", { children: "Automatically approved for" }),
+                    /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("strong", { children: [
+                      currentFinancialYear,
+                      " \xB7 Immediate business-led pathway"
+                    ] })
+                  ] })
+                ] }) : /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(import_jsx_runtime.Fragment, { children: [
+                  /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { className: "approval-fy-options", children: [currentFinancialYear, nextFinancialYear, "Future"].map((financialYear) => /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("label", { className: approvalFinancialYear === financialYear ? "selected" : "", children: [
+                    /* @__PURE__ */ (0, import_jsx_runtime.jsx)("input", { type: "radio", name: "approval-financial-year", value: financialYear, checked: approvalFinancialYear === financialYear, onChange: (event) => setApprovalFinancialYear(event.target.value) }),
+                    /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: financialYear === "Future" ? "Future FY" : financialYear })
+                  ] }, financialYear)) }),
+                  approvalFinancialYear === "Future" && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("label", { className: "field", children: [
+                    /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("span", { children: [
+                      "Future financial year ",
+                      /* @__PURE__ */ (0, import_jsx_runtime.jsx)("b", { children: "*" })
+                    ] }),
+                    /* @__PURE__ */ (0, import_jsx_runtime.jsx)("input", { value: approvalFutureFy, onChange: (event) => setApprovalFutureFy(event.target.value.toUpperCase()), placeholder: "e.g. FY29" })
+                  ] })
                 ] })
               ] }),
-              /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("section", { className: "approval-routing-card", children: [
+              /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("section", { className: `approval-routing-card ${approvalNextSteps.includes("Business-led self-service") ? "quick-completion-selected" : ""}`, children: [
                 /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [
                   /* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", { className: "eyebrow", children: "Mandatory next-step nomination" }),
                   /* @__PURE__ */ (0, import_jsx_runtime.jsx)("h3", { children: "What must happen after approval?" }),
-                  /* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", { children: "Select every specialist team or delivery path required. These selections create the shaping workspaces." })
+                  /* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", { children: approvalNextSteps.includes("Business-led self-service") ? "This demand will be approved for the business to progress directly. It will complete in DemandFlow without shaping, scheduling, resourcing or delivery." : "Select every specialist team or delivery path required. These selections create the shaping workspaces." })
                 ] }),
                 /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { className: "approval-team-checklist", children: approvalNextStepOptions.map((team) => /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("label", { className: approvalNextSteps.includes(team) ? "selected" : "", children: [
-                  /* @__PURE__ */ (0, import_jsx_runtime.jsx)("input", { type: "checkbox", checked: approvalNextSteps.includes(team), onChange: () => setApprovalNextSteps((current) => current.includes(team) ? current.filter((item) => item !== team) : [...current, team]) }),
+                  /* @__PURE__ */ (0, import_jsx_runtime.jsx)("input", { type: "checkbox", checked: approvalNextSteps.includes(team), onChange: () => toggleApprovalNextStep(team) }),
                   /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: approvalNextSteps.includes(team) ? "\u2713" : "+" }),
                   team
                 ] }, team)) }),
-                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("small", { children: approvalNextSteps.length > 0 ? `\u2713 ${approvalNextSteps.length} next step${approvalNextSteps.length > 1 ? "s" : ""} selected` : "At least one next step is required before approval." })
+                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("small", { children: approvalNextSteps.includes("Business-led self-service") ? "\u2713 Business-led self-service acknowledged \u2014 Approve demand will complete this pathway." : approvalNextSteps.length > 0 ? `\u2713 ${approvalNextSteps.length} next step${approvalNextSteps.length > 1 ? "s" : ""} selected` : "At least one next step is required before approval." })
               ] }),
               /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("label", { className: "field textarea-field", children: [
                 /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("span", { children: [
@@ -40827,7 +40907,7 @@ The primary beneficiaries are ${lowerBusinessClause(beneficiaries)}. Planning an
               ] }),
               /* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", { className: `decision-requirement ${decisionNote.trim().length >= 10 ? "met" : ""}`, children: decisionNote.trim().length >= 10 ? "\u2713 Feedback requirement met" : "Add at least 10 characters of decision feedback to enable approve or reject." }),
               /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: "decision-actions stacked", children: [
-                /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("button", { className: "button approve-button", type: "button", disabled: decisionNote.trim().length < 10 || !approvalFinancialYear || approvalFinancialYear === "Future" && !approvalFutureFy.trim() || approvalNextSteps.length === 0, onClick: () => recordDigitalDecision("Approved"), children: [
+                /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("button", { className: "button approve-button", type: "button", disabled: decisionNote.trim().length < 10 || !approvalNextSteps.includes("Business-led self-service") && (!approvalFinancialYear || approvalFinancialYear === "Future" && !approvalFutureFy.trim()) || approvalNextSteps.length === 0, onClick: () => recordDigitalDecision("Approved"), children: [
                   "Approve demand",
                   /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: "\u2713" })
                 ] }),
