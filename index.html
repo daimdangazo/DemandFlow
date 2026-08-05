@@ -35705,7 +35705,7 @@ The primary beneficiaries are ${lowerBusinessClause(beneficiaries)}. Planning an
       reviewLabel: "My Demands",
       registerTitle: "My Demands",
       registerDescription: "Track demands raised by you and see who owns the next action.",
-      profile: ["DD", "Daim Dangazo", "Business requestor"],
+      profile: ["TU", "Test User", "Business requestor"],
       spotlight: "Track each demand from submission through decision, delivery and completion.",
       metrics: [
         ["My active demands", "6", "Across the full lifecycle"],
@@ -35728,7 +35728,7 @@ The primary beneficiaries are ${lowerBusinessClause(beneficiaries)}. Planning an
       reviewLabel: "My reviews",
       registerTitle: "All submitted demands",
       registerDescription: "Every demand submitted across Organisation X, including items progressing through impact and governance.",
-      profile: ["DD", "Daim Dangazo", "Business Partner \xB7 Administrator"],
+      profile: ["TU", "Test User", "Business Partner \xB7 Administrator"],
       spotlight: "Three submissions are assigned to you for triage.",
       metrics: [
         ["Submitted demands", "9", "All active stages"],
@@ -35751,7 +35751,7 @@ The primary beneficiaries are ${lowerBusinessClause(beneficiaries)}. Planning an
       reviewLabel: "My reviews",
       registerTitle: "Impact Check Register",
       registerDescription: "Triaged demands ready for an IS&T impact assessment, including work assigned across specialist disciplines.",
-      profile: ["LP", "Luke Planken", "IS&T Impact Lead"],
+      profile: ["TU", "Test User", "IS&T Impact Lead"],
       spotlight: "Two impact assessments are assigned to you.",
       metrics: [
         ["Ready for impact", "3", "Triaged by Business Partners"],
@@ -35774,7 +35774,7 @@ The primary beneficiaries are ${lowerBusinessClause(beneficiaries)}. Planning an
       reviewLabel: "My approvals",
       registerTitle: "Demand Governance Register",
       registerDescription: "Demands that have completed Business Partner triage and the IS&T impact assessment, now ready for Digital Manager review.",
-      profile: ["DL", "Daniel Lie", "Digital Manager"],
+      profile: ["TU", "Test User", "Digital Manager"],
       spotlight: "Two governance decisions are assigned to you.",
       metrics: [
         ["Ready for review", "3", "Impact checks complete"],
@@ -35797,7 +35797,7 @@ The primary beneficiaries are ${lowerBusinessClause(beneficiaries)}. Planning an
       reviewLabel: "My actions",
       registerTitle: "Shaping demand list",
       registerDescription: "Digital Manager-approved demands requiring detailed solution definition and specialist artefacts.",
-      profile: ["ST", "Shaping Team", "Integrated Shaping Lead"],
+      profile: ["TU", "Test User", "Integrated Shaping Lead"],
       spotlight: "One approved demand needs its specialist shaping pack completed.",
       metrics: [
         ["Ready for shaping", "2", "Approved by Digital Managers"],
@@ -35820,7 +35820,7 @@ The primary beneficiaries are ${lowerBusinessClause(beneficiaries)}. Planning an
       reviewLabel: "My actions",
       registerTitle: "Portfolio & Delivery pipeline",
       registerDescription: "Shaped demands progressing through integrated resource planning, scheduling and delivery oversight.",
-      profile: ["PD", "Portfolio & Delivery", "Delivery Portfolio Lead"],
+      profile: ["TU", "Test User", "Delivery Portfolio Lead"],
       spotlight: "One shaped demand needs an integrated resource and schedule plan.",
       metrics: [
         ["Ready to schedule", "2", "Shaping packs complete"],
@@ -35843,7 +35843,7 @@ The primary beneficiaries are ${lowerBusinessClause(beneficiaries)}. Planning an
       reviewLabel: "My actions",
       registerTitle: "Delivery execution list",
       registerDescription: "Scheduled demands released by Portfolio & Delivery for execution, progress management and completion.",
-      profile: ["DT", "Delivery Team", "Delivery Lead"],
+      profile: ["TU", "Test User", "Delivery Lead"],
       spotlight: "One active delivery needs a milestone and progress update.",
       metrics: [
         ["In execution", "2", "Released delivery plans"],
@@ -37047,7 +37047,6 @@ The primary beneficiaries are ${lowerBusinessClause(beneficiaries)}. Planning an
     onHowTo
   }) {
     const queueItems = (assignedDemands.length > 0 ? assignedDemands : visibleDemands).slice(0, 4);
-    const firstName = profileName.split(" ")[0];
     return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: `operational-persona-landing persona-theme-${content.theme}`, children: [
       /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("section", { className: "persona-hero", children: [
         /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: "persona-hero-copy", children: [
@@ -37057,7 +37056,7 @@ The primary beneficiaries are ${lowerBusinessClause(beneficiaries)}. Planning an
           ] }),
           /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("h1", { children: [
             "Welcome back, ",
-            firstName,
+            profileName,
             ".",
             /* @__PURE__ */ (0, import_jsx_runtime.jsx)("br", {}),
             content.heading
@@ -39400,10 +39399,10 @@ The primary beneficiaries are ${lowerBusinessClause(beneficiaries)}. Planning an
                 /* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", { className: "eyebrow", children: "Your demand workspace" }),
                 /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("h1", { children: [
                   "Welcome back, ",
-                  currentRole.profile[1].split(" ")[0],
+                  currentRole.profile[1],
                   ". What problem can we help you move forward?"
                 ] }),
-                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", { children: "Start with the business need in plain language. DemandFlow will guide the detail, suggest the likely pathway and keep you informed from triage to completion." }),
+                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", { children: "Bring a business challenge, improvement opportunity or digital idea into one guided process. DemandFlow helps you capture the right context, choose the appropriate pathway and follow every decision through to delivery." }),
                 /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [
                   /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("button", { className: "button primary", type: "button", onClick: openDemandRequestOptions, children: [
                     "Raise a new demand",
@@ -41437,7 +41436,7 @@ The primary beneficiaries are ${lowerBusinessClause(beneficiaries)}. Planning an
                 /* @__PURE__ */ (0, import_jsx_runtime.jsx)("li", { children: "Address a business, safety, cost or productivity opportunity" })
               ] }),
               /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("button", { type: "button", onClick: startDemand, children: [
-                "Start in Digital Idea Hub",
+                "Start in DemandFlow",
                 /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: "\u2192" })
               ] }),
               /* @__PURE__ */ (0, import_jsx_runtime.jsx)("small", { children: "Continues to the guided DemandFlow submission form." })
