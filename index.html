@@ -5996,6 +5996,144 @@ legend,
   font-size: clamp(10.5px, calc(0.14vw + 9px), 11.5px) !important;
   line-height: 1.42 !important;
 }
+.column-group-select,
+.column-group-select select {
+  min-width: 155px;
+}
+.demand-data-row {
+  cursor: pointer;
+}
+.demand-data-row:hover,
+.demand-data-row:focus-visible {
+  background: #f4f8f5;
+}
+.demand-data-row:focus-visible {
+  outline: 2px solid #39745e;
+  outline-offset: -2px;
+}
+.demand-group-header,
+.user-group-header {
+  position: sticky;
+  left: 0;
+  z-index: 2;
+  width: 100%;
+  min-width: 100%;
+  min-height: 42px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  padding: 8px 14px;
+  border-bottom: 1px solid #c9dbd1;
+  background: #eaf4ee;
+  color: #285b49;
+}
+.demand-group-header strong,
+.user-group-header strong {
+  color: #153f32;
+}
+.demand-group-header small,
+.user-group-header small {
+  color: #587068;
+  white-space: nowrap;
+}
+.demand-tag-editor {
+  width: 100%;
+  display: grid;
+  gap: 6px;
+}
+.demand-tag-chips {
+  display: flex !important;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+.demand-tag-chip {
+  min-width: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 5px 3px 8px;
+  border: 1px solid #b8d1c4;
+  border-radius: 999px;
+  background: #e7f3ec;
+  color: #245846;
+  line-height: 1.2;
+}
+.demand-tag-chip > span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.demand-tag-chip button,
+.demand-tag-entry button {
+  flex: 0 0 auto;
+  display: grid;
+  place-items: center;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: #376857;
+  cursor: pointer;
+}
+.demand-tag-chip button {
+  width: 19px;
+  height: 19px;
+  padding: 0;
+}
+.demand-tag-chip button:hover,
+.demand-tag-chip button:focus-visible {
+  background: #cce4d7;
+  color: #173f33;
+}
+.demand-tag-entry {
+  min-width: 0;
+  display: flex !important;
+  align-items: center;
+  gap: 4px;
+}
+.demand-tag-entry input {
+  width: 100%;
+  min-width: 72px;
+  height: 31px;
+  padding: 0 8px;
+  border: 1px dashed #afc5ba;
+  border-radius: 7px;
+  background: #fff;
+  color: #214b3f;
+}
+.demand-tag-entry input:focus {
+  border-style: solid;
+  border-color: #3f775f;
+  outline: 2px solid rgba(63, 119, 95, 0.13);
+}
+.demand-tag-entry button {
+  width: 29px;
+  height: 29px;
+  background: #265e4b;
+  color: #fff;
+}
+.demand-tag-entry button:disabled {
+  background: #dbe4df;
+  color: #819189;
+  cursor: default;
+}
+.saved-report-table :is(th, td)[data-field=tags] {
+  min-width: 260px;
+  white-space: normal;
+}
+.saved-report-table td[data-field=tags] {
+  cursor: text;
+}
+@media (max-width: 760px) {
+  .column-group-select,
+  .column-group-select select {
+    width: 100%;
+  }
+  .demand-group-header,
+  .user-group-header {
+    min-width: calc(100vw - 58px);
+  }
+}
 .operational-persona-landing {
   --persona: #1f6755;
   --persona-deep: #123f35;
@@ -34187,6 +34325,7 @@ legend {
     title: "Demand",
     unit: "Business / site",
     investmentCategory: "Investment Category",
+    tags: "Tags",
     size: "Size",
     priority: "Priority",
     stage: "Lifecycle stage",
@@ -34197,8 +34336,23 @@ legend {
     owner: "Current owner"
   };
   var reportFieldOptions = Object.keys(reportFieldLabels).map((value) => ({ value, label: reportFieldLabels[value] }));
-  var defaultReportColumns = ["reference", "title", "unit", "investmentCategory", "size", "priority", "stage", "approvedFor"];
+  var defaultReportColumns = ["reference", "title", "unit", "investmentCategory", "tags", "size", "priority", "stage", "approvedFor"];
   var demandFlowReportStorageKey = "demandflow-saved-reports-v2";
+  var demandFlowTagStorageKey = "demandflow-shared-tags-v1";
+  function loadDemandTags() {
+    if (typeof window === "undefined") return {};
+    try {
+      const stored = window.localStorage.getItem(demandFlowTagStorageKey);
+      if (!stored) return {};
+      const parsed = JSON.parse(stored);
+      return Object.fromEntries(Object.entries(parsed).map(([demandId, tags]) => [
+        demandId,
+        Array.isArray(tags) ? tags.filter((tag) => typeof tag === "string" && Boolean(tag.trim())).map((tag) => tag.trim()) : []
+      ]));
+    } catch {
+      return {};
+    }
+  }
   function loadSavedReports() {
     if (typeof window === "undefined") return [];
     try {
@@ -34219,7 +34373,7 @@ legend {
         dashboardVisualisation: report.dashboardVisualisation ?? "donut",
         dashboardField: report.dashboardField ?? (report.groupBy && report.groupBy !== "none" ? report.groupBy : "stage"),
         scheduleEnabled: report.scheduleEnabled ?? false,
-        columns: report.columns?.length ? report.columns : defaultReportColumns,
+        columns: report.columns?.length ? report.columns.includes("tags") ? report.columns : [...report.columns, "tags"] : defaultReportColumns,
         filters: report.filters ?? [],
         groupBy: report.groupBy ?? "none",
         sortBy: report.sortBy ?? "reference",
@@ -35118,6 +35272,7 @@ The primary beneficiaries are ${lowerBusinessClause(beneficiaries)}. Planning an
       title: demand.title,
       unit: demand.unit,
       investmentCategory: demand.demandTheme ?? "Not recorded",
+      tags: demand.tags?.length ? demand.tags.join(", ") : "Untagged",
       size: getDemandSize(demand),
       priority: demand.priority,
       stage: demand.stage,
@@ -36151,12 +36306,13 @@ The primary beneficiaries are ${lowerBusinessClause(beneficiaries)}. Planning an
       }
     );
   }
-  var demandColumnOrder = ["reference", "demand", "unit", "focus", "size", "approvedFor", "stage", "owner"];
+  var demandColumnOrder = ["reference", "demand", "unit", "focus", "tags", "size", "approvedFor", "stage", "owner"];
   var demandColumnLabels = {
     reference: "Reference",
     demand: "Demand",
     unit: "Business / site",
     focus: "Investment Category",
+    tags: "Tags",
     size: "Size",
     approvedFor: "Approved for:",
     stage: "Stage",
@@ -36167,6 +36323,7 @@ The primary beneficiaries are ${lowerBusinessClause(beneficiaries)}. Planning an
     demand: 260,
     unit: 150,
     focus: 190,
+    tags: 220,
     size: 135,
     approvedFor: 130,
     stage: 140,
@@ -36177,6 +36334,7 @@ The primary beneficiaries are ${lowerBusinessClause(beneficiaries)}. Planning an
     demand: 190,
     unit: 110,
     focus: 140,
+    tags: 155,
     size: 105,
     approvedFor: 110,
     stage: 105,
@@ -36326,7 +36484,10 @@ The primary beneficiaries are ${lowerBusinessClause(beneficiaries)}. Planning an
     onFilterColumnChange,
     onFilterOperatorChange,
     onFilterTextChange,
-    onClear
+    onClear,
+    groupOptions,
+    groupBy = "none",
+    onGroupByChange
   }) {
     const selectedLabel = filterOptions.find((option) => option.value === filterColumn)?.label ?? "all columns";
     const suggestionListId = `${label.replace(/[^a-z0-9]+/gi, "-").toLowerCase()}-filter-values`;
@@ -36359,13 +36520,20 @@ The primary beneficiaries are ${lowerBusinessClause(beneficiaries)}. Planning an
         ] }),
         suggestions.length > 0 && /* @__PURE__ */ (0, import_jsx_runtime.jsx)("datalist", { id: suggestionListId, children: suggestions.slice(0, 50).map((suggestion) => /* @__PURE__ */ (0, import_jsx_runtime.jsx)("option", { value: suggestion }, suggestion)) })
       ] }),
+      groupOptions && onGroupByChange && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("label", { className: "column-filter-select column-group-select", children: [
+        /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: "Group by" }),
+        /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("select", { value: groupBy, onChange: (event) => onGroupByChange(event.target.value), children: [
+          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("option", { value: "none", children: "No grouping" }),
+          groupOptions.map((option) => /* @__PURE__ */ (0, import_jsx_runtime.jsx)("option", { value: option.value, children: option.label }, option.value))
+        ] })
+      ] }),
       filterText && /* @__PURE__ */ (0, import_jsx_runtime.jsx)("button", { className: "clear-list-filter", type: "button", onClick: onClear, children: "Clear" }),
       /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("span", { className: "list-result-count", children: [
         resultCount,
         " of ",
         totalCount
       ] }),
-      /* @__PURE__ */ (0, import_jsx_runtime.jsx)("small", { className: "resize-hint", children: "Dynamic filter \xB7 drag a heading edge to resize" })
+      /* @__PURE__ */ (0, import_jsx_runtime.jsx)("small", { className: "resize-hint", children: "Dynamic filter and grouping \xB7 drag a heading edge to resize" })
     ] });
   }
   function demandColumnValue(demand, column) {
@@ -36373,10 +36541,54 @@ The primary beneficiaries are ${lowerBusinessClause(beneficiaries)}. Planning an
     if (column === "demand") return demand.title;
     if (column === "unit") return demand.unit;
     if (column === "focus") return demand.demandTheme ?? "Not classified";
+    if (column === "tags") return demand.tags?.length ? demand.tags.join(", ") : "Untagged";
     if (column === "size") return getDemandSize(demand);
     if (column === "approvedFor") return demand.approvedFor ?? "Not approved";
     if (column === "stage") return demand.stage;
     return `${demand.owner} ${demand.age}`;
+  }
+  function normaliseDemandTags(tags) {
+    const unique = /* @__PURE__ */ new Map();
+    tags.flatMap((tag) => tag.split(",")).forEach((tag) => {
+      const value = tag.replace(/\s+/g, " ").trim().slice(0, 36);
+      if (value && !unique.has(value.toLocaleLowerCase())) unique.set(value.toLocaleLowerCase(), value);
+    });
+    return Array.from(unique.values()).slice(0, 8);
+  }
+  function DemandTagEditor({ tags, onChange }) {
+    const [draft, setDraft] = (0, import_react.useState)("");
+    const addTags = () => {
+      if (!draft.trim()) return;
+      onChange(normaliseDemandTags([...tags, draft]));
+      setDraft("");
+    };
+    const removeTag = (tagToRemove) => onChange(tags.filter((tag) => tag !== tagToRemove));
+    return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: "demand-tag-editor", onClick: (event) => event.stopPropagation(), onKeyDown: (event) => event.stopPropagation(), children: [
+      tags.length > 0 && /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { className: "demand-tag-chips", children: tags.map((tag) => /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("span", { className: "demand-tag-chip", children: [
+        /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: tag }),
+        /* @__PURE__ */ (0, import_jsx_runtime.jsx)("button", { type: "button", onClick: () => removeTag(tag), "aria-label": `Remove ${tag} tag`, children: "\xD7" })
+      ] }, tag)) }),
+      /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("span", { className: "demand-tag-entry", children: [
+        /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
+          "input",
+          {
+            value: draft,
+            onChange: (event) => setDraft(event.target.value),
+            onKeyDown: (event) => {
+              event.stopPropagation();
+              if (event.key === "Enter" || event.key === ",") {
+                event.preventDefault();
+                addTags();
+              }
+            },
+            onBlur: addTags,
+            placeholder: tags.length ? "Add tag" : "Enter tag",
+            "aria-label": "Add a globally visible demand tag"
+          }
+        ),
+        /* @__PURE__ */ (0, import_jsx_runtime.jsx)("button", { type: "button", disabled: !draft.trim(), onMouseDown: (event) => event.preventDefault(), onClick: addTags, "aria-label": "Add tag", children: "+" })
+      ] })
+    ] });
   }
   function DemandTable({
     items,
@@ -36385,13 +36597,15 @@ The primary beneficiaries are ${lowerBusinessClause(beneficiaries)}. Planning an
     emptyMessage = "No demands match the selected filter.",
     columnLabels = demandColumnLabels,
     adminEditMode = false,
-    onEditColumn
+    onEditColumn,
+    onUpdateTags
   }) {
     const [sortColumn, setSortColumn] = (0, import_react.useState)("reference");
     const [sortDirection, setSortDirection] = (0, import_react.useState)("ascending");
     const [filterColumn, setFilterColumn] = (0, import_react.useState)("all");
     const [filterOperator, setFilterOperator] = (0, import_react.useState)("contains");
     const [filterText, setFilterText] = (0, import_react.useState)("");
+    const [groupBy, setGroupBy] = (0, import_react.useState)("none");
     const resize = useResizableColumns(demandColumnWidths, demandColumnMinimums);
     const filterSuggestions = (0, import_react.useMemo)(() => {
       const columns = filterColumn === "all" ? demandColumnOrder : [filterColumn];
@@ -36412,6 +36626,15 @@ The primary beneficiaries are ${lowerBusinessClause(beneficiaries)}. Planning an
         return sortDirection === "ascending" ? comparison : -comparison;
       });
     }, [filterColumn, filterOperator, filterText, items, sortColumn, sortDirection]);
+    const displayedGroups = (0, import_react.useMemo)(() => {
+      if (groupBy === "none") return [{ label: "All demands", items: displayedItems }];
+      const groups = /* @__PURE__ */ new Map();
+      displayedItems.forEach((demand) => {
+        const label2 = groupBy === "tags" ? demand.tags?.[0] ?? "Untagged" : demandColumnValue(demand, groupBy);
+        groups.set(label2, [...groups.get(label2) ?? [], demand]);
+      });
+      return Array.from(groups.entries()).sort(([left], [right]) => left.localeCompare(right, void 0, { numeric: true, sensitivity: "base" })).map(([label2, groupedItems]) => ({ label: label2, items: groupedItems }));
+    }, [displayedItems, groupBy]);
     const gridTemplate = `${demandColumnOrder.map((column) => `${resize.widths[column]}px`).join(" ")} 24px`;
     const changeSort = (column) => {
       if (sortColumn === column) {
@@ -36436,7 +36659,10 @@ The primary beneficiaries are ${lowerBusinessClause(beneficiaries)}. Planning an
           onFilterColumnChange: (value) => setFilterColumn(value),
           onFilterOperatorChange: setFilterOperator,
           onFilterTextChange: setFilterText,
-          onClear: () => setFilterText("")
+          onClear: () => setFilterText(""),
+          groupOptions: demandColumnOrder.map((column) => ({ value: column, label: columnLabels[column] })),
+          groupBy,
+          onGroupByChange: (value) => setGroupBy(value)
         }
       ),
       /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(
@@ -36468,23 +36694,43 @@ The primary beneficiaries are ${lowerBusinessClause(beneficiaries)}. Planning an
               )),
               /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { "aria-hidden": "true" })
             ] }),
-            displayedItems.map((demand) => /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("button", { className: "demand-row", type: "button", role: "row", onClick: () => onOpen(demand), children: [
-              /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { className: "demand-reference", role: "cell", children: demand.id }),
-              /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("span", { className: "demand-name", role: "cell", children: [
-                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("strong", { children: demand.title }),
-                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("small", { children: demand.problem })
+            displayedGroups.map((group) => /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(import_react.Fragment, { children: [
+              groupBy !== "none" && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: "demand-group-header", role: "row", children: [
+                /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("span", { children: [
+                  /* @__PURE__ */ (0, import_jsx_runtime.jsx)("strong", { children: columnLabels[groupBy] }),
+                  " \xB7 ",
+                  group.label
+                ] }),
+                /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("small", { children: [
+                  group.items.length,
+                  " demand",
+                  group.items.length === 1 ? "" : "s"
+                ] })
               ] }),
-              /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { role: "cell", children: demand.unit }),
-              /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { className: "demand-focus-cell", role: "cell", children: demand.demandTheme ?? "Not classified" }),
-              /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { role: "cell", children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)("i", { className: `size-badge ${sizeClass(getDemandSize(demand))}`, children: getDemandSize(demand) }) }),
-              /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { role: "cell", children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)("i", { className: `approved-for-badge ${demand.approvedFor ? "approved" : "pending"}`, children: demand.approvedFor ?? "\u2014" }) }),
-              /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { role: "cell", children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)("i", { className: `stage-badge ${demand.tone}`, children: demand.stage }) }),
-              /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("span", { className: "owner-cell", role: "cell", children: [
-                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("strong", { children: demand.owner }),
-                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("small", { children: demand.age })
-              ] }),
-              /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { className: "row-arrow", "aria-hidden": "true", children: "\u2192" })
-            ] }, demand.id)),
+              group.items.map((demand) => /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: "demand-row demand-data-row", role: "row", tabIndex: 0, onClick: () => onOpen(demand), onKeyDown: (event) => {
+                if (event.key === "Enter" || event.key === " ") {
+                  event.preventDefault();
+                  onOpen(demand);
+                }
+              }, children: [
+                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { className: "demand-reference", role: "cell", children: demand.id }),
+                /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("span", { className: "demand-name", role: "cell", children: [
+                  /* @__PURE__ */ (0, import_jsx_runtime.jsx)("strong", { children: demand.title }),
+                  /* @__PURE__ */ (0, import_jsx_runtime.jsx)("small", { children: demand.problem })
+                ] }),
+                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { role: "cell", children: demand.unit }),
+                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { className: "demand-focus-cell", role: "cell", children: demand.demandTheme ?? "Not classified" }),
+                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { role: "cell", children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(DemandTagEditor, { tags: demand.tags ?? [], onChange: (tags) => onUpdateTags?.(demand, tags) }) }),
+                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { role: "cell", children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)("i", { className: `size-badge ${sizeClass(getDemandSize(demand))}`, children: getDemandSize(demand) }) }),
+                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { role: "cell", children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)("i", { className: `approved-for-badge ${demand.approvedFor ? "approved" : "pending"}`, children: demand.approvedFor ?? "\u2014" }) }),
+                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { role: "cell", children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)("i", { className: `stage-badge ${demand.tone}`, children: demand.stage }) }),
+                /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("span", { className: "owner-cell", role: "cell", children: [
+                  /* @__PURE__ */ (0, import_jsx_runtime.jsx)("strong", { children: demand.owner }),
+                  /* @__PURE__ */ (0, import_jsx_runtime.jsx)("small", { children: demand.age })
+                ] }),
+                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { className: "row-arrow", "aria-hidden": "true", children: "\u2192" })
+              ] }, demand.id))
+            ] }, group.label)),
             displayedItems.length === 0 && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: "list-empty-state", role: "status", children: [
               /* @__PURE__ */ (0, import_jsx_runtime.jsx)("strong", { children: "No matching items" }),
               /* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", { children: emptyMessage })
@@ -36511,6 +36757,7 @@ The primary beneficiaries are ${lowerBusinessClause(beneficiaries)}. Planning an
     const [filterColumn, setFilterColumn] = (0, import_react.useState)("all");
     const [filterOperator, setFilterOperator] = (0, import_react.useState)("contains");
     const [filterText, setFilterText] = (0, import_react.useState)("");
+    const [groupBy, setGroupBy] = (0, import_react.useState)("none");
     const resize = useResizableColumns(userColumnWidths, userColumnMinimums);
     const filterSuggestions = (0, import_react.useMemo)(() => {
       const columns = filterColumn === "all" ? userColumnOrder : [filterColumn];
@@ -36531,6 +36778,15 @@ The primary beneficiaries are ${lowerBusinessClause(beneficiaries)}. Planning an
         return sortDirection === "ascending" ? comparison : -comparison;
       });
     }, [filterColumn, filterOperator, filterText, sortColumn, sortDirection, users]);
+    const displayedGroups = (0, import_react.useMemo)(() => {
+      if (groupBy === "none") return [{ label: "All users", users: displayedUsers }];
+      const groups = /* @__PURE__ */ new Map();
+      displayedUsers.forEach((user) => {
+        const value = userColumnValue(user, groupBy);
+        groups.set(value, [...groups.get(value) ?? [], user]);
+      });
+      return Array.from(groups.entries()).sort(([left], [right]) => left.localeCompare(right, void 0, { numeric: true, sensitivity: "base" })).map(([label, groupedUsers]) => ({ label, users: groupedUsers }));
+    }, [displayedUsers, groupBy]);
     const gridTemplate = `${userColumnOrder.map((column) => `${resize.widths[column]}px`).join(" ")} 92px`;
     const changeSort = (column) => {
       if (sortColumn === column) {
@@ -36555,7 +36811,10 @@ The primary beneficiaries are ${lowerBusinessClause(beneficiaries)}. Planning an
           onFilterColumnChange: (value) => setFilterColumn(value),
           onFilterOperatorChange: setFilterOperator,
           onFilterTextChange: setFilterText,
-          onClear: () => setFilterText("")
+          onClear: () => setFilterText(""),
+          groupOptions: userColumnOrder.map((column) => ({ value: column, label: userColumnLabels[column] })),
+          groupBy,
+          onGroupByChange: (value) => setGroupBy(value)
         }
       ),
       /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(
@@ -36585,32 +36844,46 @@ The primary beneficiaries are ${lowerBusinessClause(beneficiaries)}. Planning an
               )),
               /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { "aria-hidden": "true" })
             ] }),
-            displayedUsers.map((user) => /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: "user-row", role: "row", children: [
-              /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("span", { className: "user-identity", role: "cell", children: [
-                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("i", { children: user.name.split(" ").map((part) => part[0]).slice(0, 2).join("") }),
+            displayedGroups.map((group) => /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(import_react.Fragment, { children: [
+              groupBy !== "none" && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: "user-group-header", role: "row", children: [
                 /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("span", { children: [
-                  /* @__PURE__ */ (0, import_jsx_runtime.jsx)("strong", { children: user.name }),
-                  /* @__PURE__ */ (0, import_jsx_runtime.jsx)("small", { children: user.email })
+                  /* @__PURE__ */ (0, import_jsx_runtime.jsx)("strong", { children: userColumnLabels[groupBy] }),
+                  " \xB7 ",
+                  group.label
+                ] }),
+                /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("small", { children: [
+                  group.users.length,
+                  " user",
+                  group.users.length === 1 ? "" : "s"
                 ] })
               ] }),
-              /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { role: "cell", children: user.businessUnit }),
-              /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("label", { role: "cell", children: [
-                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { className: "mobile-field-label", children: "Access role" }),
-                /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("select", { value: user.role, disabled: user.id === "USR-001", onChange: (event) => onRoleChange(user.id, event.target.value), children: [
-                  /* @__PURE__ */ (0, import_jsx_runtime.jsx)("option", { children: "Business unit" }),
-                  /* @__PURE__ */ (0, import_jsx_runtime.jsx)("option", { value: "Business partner", children: "Business partner (Administrator)" }),
-                  /* @__PURE__ */ (0, import_jsx_runtime.jsx)("option", { children: "IS&T impact" }),
-                  /* @__PURE__ */ (0, import_jsx_runtime.jsx)("option", { children: "Digital Managers" }),
-                  /* @__PURE__ */ (0, import_jsx_runtime.jsx)("option", { children: "Shaping Team" }),
-                  /* @__PURE__ */ (0, import_jsx_runtime.jsx)("option", { children: "Portfolio & Delivery" }),
-                  /* @__PURE__ */ (0, import_jsx_runtime.jsx)("option", { children: "Delivery Team" })
+              group.users.map((user) => /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: "user-row", role: "row", children: [
+                /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("span", { className: "user-identity", role: "cell", children: [
+                  /* @__PURE__ */ (0, import_jsx_runtime.jsx)("i", { children: user.name.split(" ").map((part) => part[0]).slice(0, 2).join("") }),
+                  /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("span", { children: [
+                    /* @__PURE__ */ (0, import_jsx_runtime.jsx)("strong", { children: user.name }),
+                    /* @__PURE__ */ (0, import_jsx_runtime.jsx)("small", { children: user.email })
+                  ] })
                 ] }),
-                user.role === "Business partner" && /* @__PURE__ */ (0, import_jsx_runtime.jsx)("small", { className: "administrator-role-note", children: "Administrator access" })
-              ] }),
-              /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { role: "cell", children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)("i", { className: `access-status ${user.status.toLowerCase()}`, children: user.status }) }),
-              /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { className: "last-active", role: "cell", children: user.lastActive }),
-              /* @__PURE__ */ (0, import_jsx_runtime.jsx)("button", { className: "user-action", type: "button", disabled: user.id === "USR-001", onClick: () => onToggleStatus(user.id), children: user.status === "Active" ? "Suspend" : "Restore" })
-            ] }, user.id)),
+                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { role: "cell", children: user.businessUnit }),
+                /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("label", { role: "cell", children: [
+                  /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { className: "mobile-field-label", children: "Access role" }),
+                  /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("select", { value: user.role, disabled: user.id === "USR-001", onChange: (event) => onRoleChange(user.id, event.target.value), children: [
+                    /* @__PURE__ */ (0, import_jsx_runtime.jsx)("option", { children: "Business unit" }),
+                    /* @__PURE__ */ (0, import_jsx_runtime.jsx)("option", { value: "Business partner", children: "Business partner (Administrator)" }),
+                    /* @__PURE__ */ (0, import_jsx_runtime.jsx)("option", { children: "IS&T impact" }),
+                    /* @__PURE__ */ (0, import_jsx_runtime.jsx)("option", { children: "Digital Managers" }),
+                    /* @__PURE__ */ (0, import_jsx_runtime.jsx)("option", { children: "Shaping Team" }),
+                    /* @__PURE__ */ (0, import_jsx_runtime.jsx)("option", { children: "Portfolio & Delivery" }),
+                    /* @__PURE__ */ (0, import_jsx_runtime.jsx)("option", { children: "Delivery Team" })
+                  ] }),
+                  user.role === "Business partner" && /* @__PURE__ */ (0, import_jsx_runtime.jsx)("small", { className: "administrator-role-note", children: "Administrator access" })
+                ] }),
+                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { role: "cell", children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)("i", { className: `access-status ${user.status.toLowerCase()}`, children: user.status }) }),
+                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { className: "last-active", role: "cell", children: user.lastActive }),
+                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("button", { className: "user-action", type: "button", disabled: user.id === "USR-001", onClick: () => onToggleStatus(user.id), children: user.status === "Active" ? "Suspend" : "Restore" })
+              ] }, user.id))
+            ] }, group.label)),
             displayedUsers.length === 0 && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: "list-empty-state", role: "status", children: [
               /* @__PURE__ */ (0, import_jsx_runtime.jsx)("strong", { children: "No matching users" }),
               /* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", { children: "Try another column or clear the filter." })
@@ -37305,6 +37578,7 @@ The primary beneficiaries are ${lowerBusinessClause(beneficiaries)}. Planning an
     const [approvalFutureFy, setApprovalFutureFy] = (0, import_react.useState)("");
     const [approvalNextSteps, setApprovalNextSteps] = (0, import_react.useState)([]);
     const [demandUpdates, setDemandUpdates] = (0, import_react.useState)({});
+    const [demandTags, setDemandTags] = (0, import_react.useState)(loadDemandTags);
     const [editDemand, setEditDemand] = (0, import_react.useState)(null);
     const [users, setUsers] = (0, import_react.useState)(initialUsers);
     const [showProvision, setShowProvision] = (0, import_react.useState)(false);
@@ -37336,6 +37610,7 @@ The primary beneficiaries are ${lowerBusinessClause(beneficiaries)}. Planning an
     const [reportLibraryFilter, setReportLibraryFilter] = (0, import_react.useState)("mine");
     const [showReportCreator, setShowReportCreator] = (0, import_react.useState)(false);
     const [selectedReportOutputId, setSelectedReportOutputId] = (0, import_react.useState)("");
+    const [selectedReportGroupBy, setSelectedReportGroupBy] = (0, import_react.useState)("none");
     const [reportVisualisation, setReportVisualisation] = (0, import_react.useState)("list");
     const [reportVisualField, setReportVisualField] = (0, import_react.useState)("stage");
     const [notifications, setNotifications] = (0, import_react.useState)(initialNotifications);
@@ -37507,6 +37782,19 @@ The primary beneficiaries are ${lowerBusinessClause(beneficiaries)}. Planning an
       }
     }, [scheduledReports]);
     (0, import_react.useEffect)(() => {
+      try {
+        window.localStorage.setItem(demandFlowTagStorageKey, JSON.stringify(demandTags));
+      } catch {
+      }
+    }, [demandTags]);
+    (0, import_react.useEffect)(() => {
+      const syncTagsFromAnotherTab = (event) => {
+        if (event.key === demandFlowTagStorageKey) setDemandTags(loadDemandTags());
+      };
+      window.addEventListener("storage", syncTagsFromAnotherTab);
+      return () => window.removeEventListener("storage", syncTagsFromAnotherTab);
+    }, []);
+    (0, import_react.useEffect)(() => {
       const isSegmentView = ["approved", "rejected", "selfservice", "centrallyassisted"].includes(view);
       const roleCanUseView = role === "Business unit" || role === "Digital Managers" && (view === "approved" || view === "rejected");
       if (isSegmentView && !roleCanUseView) setView("overview");
@@ -37603,8 +37891,8 @@ The primary beneficiaries are ${lowerBusinessClause(beneficiaries)}. Planning an
       setAuditEntries((current) => [entry, ...current].slice(0, 250));
     }, [currentRole.profile, role]);
     const allDemands = (0, import_react.useMemo)(
-      () => demands.map((demand) => ({ ...demand, ...demandUpdates[demand.id] })),
-      [demandUpdates]
+      () => demands.map((demand) => ({ ...demand, ...demandUpdates[demand.id], tags: demandTags[demand.id] ?? demand.tags ?? [] })),
+      [demandTags, demandUpdates]
     );
     const selectedPortfolio = businessPartnerPortfolios.find(
       (portfolio) => portfolio.partner === selectedPortfolioPartner
@@ -37803,14 +38091,14 @@ The primary beneficiaries are ${lowerBusinessClause(beneficiaries)}. Planning an
       });
     }, [reportSourceDemands, selectedReportOutput]);
     const selectedReportGroups = (0, import_react.useMemo)(() => {
-      if (!selectedReportOutput || selectedReportOutput.groupBy === "none") return [{ label: "All results", items: selectedReportResults }];
+      if (!selectedReportOutput || selectedReportGroupBy === "none") return [{ label: "All results", items: selectedReportResults }];
       const groups = /* @__PURE__ */ new Map();
       selectedReportResults.forEach((demand) => {
-        const label = getReportFieldValue(demand, selectedReportOutput.groupBy);
+        const label = getReportFieldValue(demand, selectedReportGroupBy);
         groups.set(label, [...groups.get(label) ?? [], demand]);
       });
       return Array.from(groups.entries()).map(([label, items]) => ({ label, items }));
-    }, [selectedReportOutput, selectedReportResults]);
+    }, [selectedReportGroupBy, selectedReportOutput, selectedReportResults]);
     const reportOutputSlices = (0, import_react.useMemo)(() => {
       const colours = ["#2e6657", "#e39566", "#5d82a8", "#7b6ca8", "#d7ae52", "#7bb894", "#a64f42", "#4f86ad", "#8b9c76", "#c77d9a"];
       const counts = /* @__PURE__ */ new Map();
@@ -38137,6 +38425,7 @@ The primary beneficiaries are ${lowerBusinessClause(beneficiaries)}. Planning an
     };
     const openReportOutput = (report) => {
       setSelectedReportOutputId(report.id);
+      setSelectedReportGroupBy(report.groupBy);
       setReportVisualisation("list");
       setReportVisualField(report.groupBy === "none" ? "stage" : report.groupBy);
       window.setTimeout(() => document.querySelector(".saved-report-output")?.scrollIntoView({ behavior: "smooth", block: "start" }), 60);
@@ -38207,6 +38496,7 @@ The primary beneficiaries are ${lowerBusinessClause(beneficiaries)}. Planning an
       };
       setScheduledReports((current) => [savedReport, ...current]);
       setSelectedReportOutputId(reportId);
+      setSelectedReportGroupBy(savedReport.groupBy);
       setReportVisualisation("list");
       setReportVisualField(savedReport.dashboardField);
       setShowReportCreator(false);
@@ -39084,11 +39374,22 @@ The primary beneficiaries are ${lowerBusinessClause(beneficiaries)}. Planning an
       );
       notify("User access status updated.");
     };
+    const updateDemandTags = (demand, tags) => {
+      const normalisedTags = normaliseDemandTags(tags);
+      setDemandTags((current) => ({ ...current, [demand.id]: normalisedTags }));
+      recordAudit(
+        "Updated demand tags",
+        `${demand.id} tags changed to ${normalisedTags.length ? normalisedTags.join(", ") : "none"}.`,
+        demand.id
+      );
+      notify(normalisedTags.length ? "Demand tags updated across all views." : "Demand tags cleared across all views.");
+    };
     const navCount = visibleDemands.length;
     const demandTableAdminProps = {
       columnLabels: editableDemandColumnLabels,
       adminEditMode,
-      onEditColumn: openColumnEditor
+      onEditColumn: openColumnEditor,
+      onUpdateTags: updateDemandTags
     };
     const adminRecoveryPanel = adminEditMode && rollbackOptions.length > 0 ? /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("section", { className: "admin-recovery-card", children: [
       /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: "admin-recovery-heading", children: [
@@ -39950,6 +40251,13 @@ The primary beneficiaries are ${lowerBusinessClause(beneficiaries)}. Planning an
                 /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: icon }),
                 label
               ] }, visualisation)) }),
+              reportVisualisation === "list" && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("label", { children: [
+                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: "Group by" }),
+                /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("select", { value: selectedReportGroupBy, onChange: (event) => setSelectedReportGroupBy(event.target.value), children: [
+                  /* @__PURE__ */ (0, import_jsx_runtime.jsx)("option", { value: "none", children: "No grouping" }),
+                  reportFieldOptions.map((field) => /* @__PURE__ */ (0, import_jsx_runtime.jsx)("option", { value: field.value, children: field.label }, field.value))
+                ] })
+              ] }),
               reportVisualisation !== "list" && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("label", { children: [
                 /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: "Visualise by" }),
                 /* @__PURE__ */ (0, import_jsx_runtime.jsx)("select", { value: reportVisualField, onChange: (event) => setReportVisualField(event.target.value), children: reportFieldOptions.filter((field) => field.value !== "title" && field.value !== "reference").map((field) => /* @__PURE__ */ (0, import_jsx_runtime.jsx)("option", { value: field.value, children: field.label }, field.value)) })
@@ -39960,7 +40268,7 @@ The primary beneficiaries are ${lowerBusinessClause(beneficiaries)}. Planning an
               ] }) })
             ] }),
             reportVisualisation === "list" && /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { className: "saved-report-list-view", children: selectedReportResults.length > 0 ? /* @__PURE__ */ (0, import_jsx_runtime.jsx)(import_jsx_runtime.Fragment, { children: selectedReportGroups.map((group) => /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("section", { className: "saved-report-group", children: [
-              selectedReportOutput.groupBy !== "none" && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("header", { children: [
+              selectedReportGroupBy !== "none" && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("header", { children: [
                 /* @__PURE__ */ (0, import_jsx_runtime.jsx)("strong", { children: group.label }),
                 /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("span", { children: [
                   group.items.length,
@@ -39974,7 +40282,7 @@ The primary beneficiaries are ${lowerBusinessClause(beneficiaries)}. Planning an
                     event.preventDefault();
                     openDemand(demand);
                   }
-                }, children: selectedReportOutput.columns.map((field) => /* @__PURE__ */ (0, import_jsx_runtime.jsx)("td", { "data-field": field, title: getReportFieldValue(demand, field), children: getReportFieldValue(demand, field) }, field)) }, demand.id)) })
+                }, children: selectedReportOutput.columns.map((field) => /* @__PURE__ */ (0, import_jsx_runtime.jsx)("td", { "data-field": field, title: getReportFieldValue(demand, field), children: field === "tags" ? /* @__PURE__ */ (0, import_jsx_runtime.jsx)(DemandTagEditor, { tags: demand.tags ?? [], onChange: (tags) => updateDemandTags(demand, tags) }) : getReportFieldValue(demand, field) }, field)) }, demand.id)) })
               ] }) })
             ] }, group.label)) }) : /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: "saved-report-empty", children: [
               /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: "\u2301" }),
